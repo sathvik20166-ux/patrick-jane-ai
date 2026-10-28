@@ -4,6 +4,15 @@ const responseOutput = document.getElementById('responseOutput');
 const statusBadge = document.getElementById('statusBadge');
 const activityFeed = document.getElementById('activityFeed');
 
+function speak(text) {
+  if (!('speechSynthesis' in window)) return;
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.rate = 1;
+  utterance.pitch = 1;
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(utterance);
+}
+
 async function runCommand(commandText) {
   try {
     const response = await fetch('/api/command', {
@@ -17,7 +26,9 @@ async function runCommand(commandText) {
     }
 
     const data = await response.json();
-    responseOutput.textContent = JSON.stringify(data, null, 2);
+    const content = data.response || JSON.stringify(data, null, 2);
+    responseOutput.textContent = content;
+    speak(content);
 
     const item = document.createElement('li');
     item.textContent = `${new Date().toLocaleTimeString()} :: ${commandText}`;
@@ -37,7 +48,9 @@ async function runCommand(commandText) {
       statusBadge.textContent = 'Online';
     }
   } catch (error) {
-    responseOutput.textContent = 'Error: Patrick Jane backend is not running. Start it with: python server.py';
+    const fallback = 'Error: Patrick Jane backend is not running. Start it with python server.py.';
+    responseOutput.textContent = fallback;
+    speak(fallback);
   }
 }
 
@@ -62,3 +75,5 @@ document.querySelectorAll('[data-command]').forEach((button) => {
     }
   });
 });
+
+speak('Patrick Jane is online and ready.');
