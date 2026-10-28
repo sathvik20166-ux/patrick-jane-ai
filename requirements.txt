@@ -1,4 +1,70 @@
-fastapi==0.115.0
-uvicorn==0.30.6
-pydantic==2.9.2
-python-dotenv==1.0.1
+# Patrick Jane
+
+Patrick Jane is a local, own-AI assistant project built in this repo so you can test it without any external AI API.
+
+It includes:
+- local command engine
+- app launching logic
+- Spotify launch behavior
+- Roblox concept generator
+- YouTube clip highlight planner
+- futuristic classic dashboard UI
+
+## Run locally
+
+From the project root:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+python server.py
+```
+
+Then open:
+
+```text
+http://localhost:8000
+```
+
+## Commands you can try
+
+- Patrick, wake up Patrick
+- Patrick, open Spotify
+- Patrick, play music
+- Patrick, create a Roblox anime fighting game
+- Patrick, analyze this YouTube video: https://www.youtube.com/watch?v=dQw4w9WgXcQ
+- Patrick, open VS Code
+- Patrick, system status
+
+## Repo structure
+
+```text
+patrick-jane-ai/
+├── server.py
+├── patrick_ai.py
+├── requirements.txt
+├── static/
+│   ├── index.html
+│   ├── styles.css
+│   └── app.js
+├── README.md
+└── .gitignore
+```
+
+## Notes
+
+This version does not use external AI APIs. It is a local, own-AI assistant built directly in the repository so you can run, test, and expand it easily.
+
+The assistant is rule-based and designed to be easy to extend with your own logic or future features.
+
+## Future upgrades
+
+- voice recognition
+- wake-word detection
+- local speech output
+- more app automation
+- Roblox Lua templates
+- better clip detection logic
+- desktop packaging

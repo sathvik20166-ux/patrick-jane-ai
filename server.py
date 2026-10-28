@@ -1,69 +1,48 @@
-const input = document.getElementById('commandInput');
-const runBtn = document.getElementById('runCommandBtn');
-const responseOutput = document.getElementById('responseOutput');
-const statusBadge = document.getElementById('statusBadge');
-const activityFeed = document.getElementById('activityFeed');
+from __future__ import annotations
 
-async function runCommand(commandText) {
-  try {
-    const payload = { text: commandText };
+import os
+import platform
+import shutil
+import subprocess
+from pathlib import Path
+from typing import Any
 
-    const result = await fetch('/api/command', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    });
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
-    const data = await result.json();
-    responseOutput.textContent = JSON.stringify(data, null, 2);
+from patrick_ai import PatrickAI
 
-    const item = document.createElement('li');
-    item.textContent = `${new Date().toLocaleTimeString()} :: ${commandText}`;
-    activityFeed.prepend(item);
+BASE_DIR = Path(__file__).resolve().parent
+STATIC_DIR = BASE_DIR / "static"
 
-    if (data.status === 'awake') {
-      statusBadge.textContent = 'Awake';
-      statusBadge.style.color = '#59d18a';
-    } else if (data.action === 'spotify') {
-      statusBadge.textContent = 'Music';
-      statusBadge.style.color = '#d8b15f';
-    } else if (data.action === 'roblox') {
-      statusBadge.textContent = 'Build';
-      statusBadge.style.color = '#8ed2ff';
-    } else if (data.action === 'clips') {
-      statusBadge.textContent = 'Clips';
-      statusBadge.style.color = '#ffb36b';
-    } else {
-      statusBadge.textContent = 'Online';
-      statusBadge.style.color = '#59d18a';
-    }
-  } catch (error) {
-    responseOutput.textContent = 'Error: could not connect to the Patrick Jane API.';
-  }
-}
+app = FastAPI(title="Patrick Jane", version="1.0.0")
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
-runBtn.addEventListener('click', () => {
-  const text = input.value.trim();
-  if (text) {
-    runCommand(text);
-  }
-});
+assistant = PatrickAI()
 
-input.addEventListener('keydown', (event) => {
-  if (event.key === 'Enter') {
-    const text = input.value.trim();
-    if (text) {
-      runCommand(text);
-    }
-  }
-});
 
-document.querySelectorAll('[data-command]').forEach((button) => {
-  button.addEventListener('click', () => {
-    const cmd = button.getAttribute('data-command');
-    input.value = cmd;
-    runCommand(cmd);
-  });
-});
+@app.get("/")
+def index() -> FileResponse:
+    return FileResponse(STATIC_DIR / "index.html")
+
+
+@app.get("/healthz")
+def health() -> dict[str, str]:
+    return {"status": "ok", "service": "patrick-jane"}
+
+
+@app.post("/api/command")
+def handle_command(payload: dict[str, Any]) -> dict[str, Any]:
+    text = payload.get("text")
+    if not isinstance(text, str):
+        raise HTTPException(status_code=400, detail="Field 'text' must be a string.")
+    return assistant.process(text)
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    host = os.getenv("HOST", "0.0.0.0")
+    port = int(os.getenv("PORT", "8000"))
+    uvicorn.run(app, host=host, port=port)

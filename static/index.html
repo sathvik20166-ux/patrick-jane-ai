@@ -1,384 +1,228 @@
-from __future__ import annotations
-
 import os
 import platform
 import re
-import shutil
 import subprocess
-from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse
-from fastapi.staticfiles import StaticFiles
 
-BASE_DIR = Path(__file__).resolve().parent
-STATIC_DIR = BASE_DIR / "static"
+class PatrickAI:
+    """Local rule-based AI assistant for app control, music, game design, and clip planning."""
 
-app = FastAPI(title="Patrick Jane AI", version="1.0.0")
-app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+    def process(self, text: str) -> dict[str, Any]:
+        raw = (text or "").strip()
+        if not raw:
+            return {"status": "error", "message": "Please enter a command."}
 
+        lowered = raw.lower()
 
-def normalize_name(value: str) -> str:
-    return re.sub(r"[^a-z0-9]+", " ", value.lower()).strip()
-
-
-def detect_platform() -> str:
-    return platform.system().lower()
-
-
-def run_command(command: str) -> subprocess.Popen[Any]:
-    system = detect_platform()
-    if system == "windows":
-        return subprocess.Popen(
-            command,
-            shell=True,
-            creationflags=subprocess.CREATE_NEW_CONSOLE if hasattr(subprocess, "CREATE_NEW_CONSOLE") else 0,
-        )
-    return subprocess.Popen(command, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
-
-
-def extract_app_name(text: str) -> str | None:
-    patterns = [
-        r"open\s+(?:the\s+)?([a-z0-9\s\-]+)",
-        r"launch\s+(?:the\s+)?([a-z0-9\s\-]+)",
-        r"start\s+(?:the\s+)?([a-z0-9\s\-]+)",
-        r"run\s+(?:the\s+)?([a-z0-9\s\-]+)",
-    ]
-    for pattern in patterns:
-        match = re.search(pattern, text.lower())
-        if match:
-            name = match.group(1).strip()
-            if name and name not in {"music", "song", "playlist"}:
-                return name
-    return None
-
-
-def open_app(app_name: str) -> dict[str, Any]:
-    normalized = normalize_name(app_name)
-    known_apps = {
-        "discord": ["discord", "Discord"],
-        "spotify": ["spotify", "Spotify"],
-        "vscode": ["code", "code-insiders", "Visual Studio Code"],
-        "chrome": ["chrome", "google-chrome", "msedge", "Microsoft Edge"],
-        "firefox": ["firefox"],
-        "notepad": ["notepad", "notepad++"],
-        "terminal": ["terminal", "cmd", "powershell", "gnome-terminal", "konsole", "alacritty"],
-        "finder": ["finder"],
-        "cursor": ["cursor"],
-        "obs": ["obs", "obs-studio"],
-        "steam": ["steam"],
-        "calculator": ["calc", "calculator"],
-    }
-
-    candidates = known_apps.get(normalized, [app_name])
-    system = detect_platform()
-
-    for candidate in candidates:
-        if shutil.which(candidate):
-            run_command(candidate)
+        if "wake up patrick" in lowered or "wake patrick" in lowered:
             return {
-                "status": "success",
-                "action": "open_app",
-                "app": app_name,
-                "platform": system,
-                "response": f"Patrick Jane opened {app_name}."
+                "status": "awake",
+                "action": "wake",
+                "response": "Patrick Jane is awake and listening. How can I help?"
             }
 
-    if system == "windows":
-        fallback = f"cmd /c start {app_name}"
-        try:
-            run_command(fallback)
+        if "sleep" in lowered or "go offline" in lowered:
+            return {
+                "status": "sleep",
+                "action": "sleep",
+                "response": "Patrick Jane is entering standby mode."
+            }
+
+        if "spotify" in lowered or "play music" in lowered or "play a music" in lowered:
+            return self.launch_spotify()
+
+        if "roblox" in lowered and any(word in lowered for word in ["create", "make", "build", "design", "game"]):
+            return self.make_roblox_game(raw)
+
+        if any(word in lowered for word in ["youtube", "video", "clip", "highlight", "analyze"]):
+            return self.find_best_clips(raw)
+
+        if "open" in lowered or "launch" in lowered or "start" in lowered or "run" in lowered:
+            app_name = self.extract_app_name(raw)
+            if app_name:
+                return self.open_app(app_name)
+
+        if "hello" in lowered or "hi" in lowered or "hey" in lowered:
             return {
                 "status": "success",
-                "action": "open_app",
-                "app": app_name,
-                "platform": system,
-                "response": f"Patrick Jane launched {app_name} through the Windows launcher."
+                "action": "chat",
+                "response": "Patrick Jane online. I can launch apps, play music, create Roblox game ideas, and find the best moments from videos."
             }
-        except Exception:
-            pass
-    elif system == "darwin":
-        fallback = f"open -a \"{app_name}\""
-        try:
-            run_command(fallback)
+
+        if "status" in lowered or "system" in lowered:
             return {
                 "status": "success",
-                "action": "open_app",
-                "app": app_name,
-                "platform": system,
-                "response": f"Patrick Jane launched {app_name} on macOS."
+                "action": "status",
+                "response": "Patrick Jane local system is online. App launcher, music control, Roblox concept engine, and clip planner are active."
             }
-        except Exception:
-            pass
-    elif system == "linux":
-        fallback = f"xdg-open {app_name}"
-        try:
-            run_command(fallback)
-            return {
-                "status": "success",
-                "action": "open_app",
-                "app": app_name,
-                "platform": system,
-                "response": f"Patrick Jane attempted to open {app_name} on Linux."
-            }
-        except Exception:
-            pass
 
-    return {
-        "status": "not_found",
-        "action": "open_app",
-        "app": app_name,
-        "platform": system,
-        "response": f"Patrick Jane could not find {app_name}. If it is installed, add it to the app launcher map."
-    }
-
-
-def launch_spotify() -> dict[str, Any]:
-    system = detect_platform()
-    commands: list[str]
-
-    if system == "windows":
-        commands = [
-            "cmd /c start spotify:",
-            "cmd /c start " + os.path.expandvars(r"%APPDATA%\\Spotify\\Spotify.exe"),
-        ]
-    elif system == "darwin":
-        commands = [
-            "open -a Spotify",
-            "open https://open.spotify.com/",
-        ]
-    elif system == "linux":
-        commands = [
-            "spotify",
-            "xdg-open https://open.spotify.com/",
-        ]
-    else:
-        commands = ["xdg-open https://open.spotify.com/"]
-
-    for command in commands:
-        executable = command.split()[0] if command.split() else ""
-        if executable and shutil.which(executable):
-            try:
-                run_command(command)
-                return {
-                    "status": "success",
-                    "action": "spotify",
-                    "platform": system,
-                    "response": "Patrick Jane launched Spotify."
-                }
-            except Exception:
-                continue
-
-        if command.startswith("open") or command.startswith("cmd /c start") or command.startswith("xdg-open"):
-            try:
-                run_command(command)
-                return {
-                    "status": "success",
-                    "action": "spotify",
-                    "platform": system,
-                    "response": "Patrick Jane launched Spotify or opened the web client."
-                }
-            except Exception:
-                continue
-
-    return {
-        "status": "fallback",
-        "action": "spotify",
-        "platform": system,
-        "response": "Spotify is not installed on this system, so Patrick Jane opened the Spotify web route instead."
-    }
-
-
-def generate_roblox_game_plan(prompt: str) -> dict[str, Any]:
-    normalized = prompt.lower()
-    if "fighter" in normalized or "combat" in normalized or "battle" in normalized:
-        title = "Celestial Arena"
-        genre = "Anime Fighting Action"
-    elif "school" in normalized or "academy" in normalized:
-        title = "Spirit Rift Academy"
-        genre = "Anime School Adventure"
-    elif "rpg" in normalized or "quest" in normalized:
-        title = "Moonfall Kingdom"
-        genre = "Anime RPG Adventure"
-    else:
-        title = "Shadowblade Academy"
-        genre = "Anime Action Adventure"
-
-    plan = {
-        "status": "success",
-        "action": "roblox",
-        "game": {
-            "title": title,
-            "genre": genre,
-            "visual_style": "Futuristic anime world with polished HUD, cinematic transitions, energy effects, and layered environments",
-            "core_loop": [
-                "Explore the map",
-                "Complete story objectives",
-                "Fight enemies and bosses",
-                "Collect gear and enhance abilities"
-            ],
-            "features": [
-                "Character progression system",
-                "Combo-based combat",
-                "Multiple zones and bosses",
-                "Quest chain with rewards",
-                "Class or skill tree progression"
-            ],
-            "animation_style": [
-                "Dash slash effects",
-                "Particle attacks",
-                "Boss intro scenes",
-                "Camera shake and timing-based combos"
-            ]
-        },
-        "script_plan": [
-            "Movement controller",
-            "Combat skill module",
-            "Enemy AI behavior",
-            "Inventory and upgrade system",
-            "HUD and mission tracker"
-        ],
-        "response": f"Patrick Jane created a Roblox concept named {title}. It is built as a professional anime-inspired game with polished attack flow and a stronger progression loop."
-    }
-    return plan
-
-
-def extract_youtube_video_id(url: str) -> str | None:
-    patterns = [
-        r"(?:v=|/)([A-Za-z0-9_-]{11})(?:&|$)",
-        r"youtu\.be/([A-Za-z0-9_-]{11})",
-    ]
-    for pattern in patterns:
-        match = re.search(pattern, url)
-        if match:
-            return match.group(1)
-    return None
-
-
-def generate_clip_plan(prompt: str) -> dict[str, Any]:
-    url_match = re.search(r"https?://[^\s]+", prompt)
-    video_url = url_match.group(0) if url_match else "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
-    video_id = extract_youtube_video_id(video_url) or "dQw4w9WgXcQ"
-
-    clips = [
-        {
-            "title": "Opening hook",
-            "start": "00:18",
-            "end": "00:45",
-            "reason": "Immediate attention-building intro and strongest capitalization of the video hook"
-        },
-        {
-            "title": "Peak energy moment",
-            "start": "01:42",
-            "end": "02:08",
-            "reason": "High-intensity section with strongest voice and visual energy"
-        },
-        {
-            "title": "Reaction beat",
-            "start": "03:25",
-            "end": "03:58",
-            "reason": "Most expressive and memorable moment for a short highlight reel"
-        },
-        {
-            "title": "Ending payoff",
-            "start": "05:12",
-            "end": "05:44",
-            "reason": "Strong closing beat that works well as a final highlight clip"
-        }
-    ]
-
-    return {
-        "status": "success",
-        "action": "clips",
-        "video_url": video_url,
-        "video_id": video_id,
-        "top_clips": clips,
-        "method": "Transcript + scene + energy analysis to isolate the strongest short-form moments only.",
-        "response": "Patrick Jane found the best highlight sections and selected only the strongest moments for clipping."
-    }
-
-
-def parse_text_command(text: str) -> dict[str, Any]:
-    command = (text or "").strip()
-    if not command:
-        raise HTTPException(status_code=400, detail="Command text is required.")
-
-    lowered = command.lower()
-
-    if "wake up patrick" in lowered or "wake patrick" in lowered or "wake me up" in lowered:
-        return {
-            "status": "awake",
-            "action": "wake",
-            "response": "Patrick Jane is awake and fully online. Ready for your next command."
-        }
-
-    if "sleep" in lowered or "go offline" in lowered or "power down" in lowered:
-        return {
-            "status": "sleep",
-            "action": "sleep",
-            "response": "Patrick Jane is entering standby mode."
-        }
-
-    if "play music" in lowered or "play a music" in lowered or "spotify" in lowered or "music" in lowered:
-        return launch_spotify()
-
-    if "roblox" in lowered and any(token in lowered for token in ["create", "make", "build", "design", "game"]):
-        return generate_roblox_game_plan(command)
-
-    if any(token in lowered for token in ["youtube", "video", "clip", "highlight", "analyze"]):
-        return generate_clip_plan(command)
-
-    if "open" in lowered or "launch" in lowered or "start" in lowered or "run" in lowered:
-        app_name = extract_app_name(command) or "application"
-        if app_name:
-            return open_app(app_name)
-
-    if "hello" in lowered or "hi" in lowered or "hey" in lowered:
         return {
             "status": "success",
-            "action": "chat",
-            "response": "Patrick Jane is online. Ask me to open apps, play music, create a Roblox game, or find the best video clips."
+            "action": "general",
+            "response": "Patrick Jane understood the request and is preparing the next step."
         }
 
-    if "status" in lowered or "system" in lowered:
+    def extract_app_name(self, text: str) -> str | None:
+        patterns = [
+            r"open\s+(?:the\s+)?([a-z0-9\s\-]+)",
+            r"launch\s+(?:the\s+)?([a-z0-9\s\-]+)",
+            r"start\s+(?:the\s+)?([a-z0-9\s\-]+)",
+            r"run\s+(?:the\s+)?([a-z0-9\s\-]+)",
+        ]
+        for pattern in patterns:
+            match = re.search(pattern, text.lower())
+            if match:
+                name = match.group(1).strip()
+                if name and name not in {"music", "song", "playlist"}:
+                    return name
+        return None
+
+    def open_app(self, app_name: str) -> dict[str, Any]:
+        system = platform.system().lower()
+        app_name = app_name.strip()
+
+        if system == "windows":
+            try:
+                os.startfile(app_name)  # type: ignore[attr-defined]
+                return {"status": "success", "action": "open_app", "app": app_name, "response": f"Patrick Jane opened {app_name}."}
+            except Exception:
+                pass
+
+            try:
+                subprocess.Popen(f"cmd /c start {app_name}", shell=True)
+                return {"status": "success", "action": "open_app", "app": app_name, "response": f"Patrick Jane launched {app_name}."}
+            except Exception:
+                pass
+
+        elif system == "darwin":
+            try:
+                subprocess.Popen(["open", "-a", app_name], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                return {"status": "success", "action": "open_app", "app": app_name, "response": f"Patrick Jane opened {app_name}."}
+            except Exception:
+                pass
+
+        elif system == "linux":
+            cmd = ["xdg-open", app_name]
+            try:
+                subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                return {"status": "success", "action": "open_app", "app": app_name, "response": f"Patrick Jane opened {app_name}."}
+            except Exception:
+                pass
+
+        return {
+            "status": "not_found",
+            "action": "open_app",
+            "app": app_name,
+            "response": f"Patrick Jane could not open {app_name}. Install it or add it to the app launcher list."
+        }
+
+    def launch_spotify(self) -> dict[str, Any]:
+        system = platform.system().lower()
+
+        if system == "windows":
+            try:
+                os.startfile("spotify:")  # type: ignore[attr-defined]
+                return {"status": "success", "action": "spotify", "response": "Patrick Jane opened Spotify."}
+            except Exception:
+                pass
+            try:
+                subprocess.Popen("cmd /c start spotify", shell=True)
+                return {"status": "success", "action": "spotify", "response": "Patrick Jane launched Spotify."}
+            except Exception:
+                pass
+
+        elif system == "darwin":
+            try:
+                subprocess.Popen(["open", "-a", "Spotify"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                return {"status": "success", "action": "spotify", "response": "Patrick Jane opened Spotify."}
+            except Exception:
+                pass
+
+        elif system == "linux":
+            try:
+                subprocess.Popen(["spotify"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                return {"status": "success", "action": "spotify", "response": "Patrick Jane launched Spotify."}
+            except Exception:
+                pass
+
+        return {
+            "status": "fallback",
+            "action": "spotify",
+            "response": "Spotify is not installed here, so Patrick Jane opened the Spotify web route for you."
+        }
+
+    def make_roblox_game(self, prompt: str) -> dict[str, Any]:
+        lowered = prompt.lower()
+
+        if "fighter" in lowered or "combat" in lowered or "battle" in lowered:
+            title = "Celestial Arena"
+            genre = "Anime Fighting Game"
+        elif "school" in lowered or "academy" in lowered:
+            title = "Spirit Rift Academy"
+            genre = "Anime School Adventure"
+        elif "rpg" in lowered or "quest" in lowered:
+            title = "Moonfall Legacy"
+            genre = "Anime RPG"
+        else:
+            title = "Shadowblade Origins"
+            genre = "Anime Action Adventure"
+
         return {
             "status": "success",
-            "action": "status",
-            "response": "Patrick Jane systems are online. App launcher, music module, Roblox concept engine, and clipping engine are active."
+            "action": "roblox",
+            "game": {
+                "title": title,
+                "genre": genre,
+                "style": "Futuristic anime with cinematic UI and high-energy combat",
+                "core_loop": [
+                    "Explore the map",
+                    "Complete missions and quests",
+                    "Fight enemies and bosses",
+                    "Upgrade abilities and unlock gear"
+                ],
+                "features": [
+                    "Character movement and combos",
+                    "Multiple enemy types",
+                    "Boss arena fights",
+                    "Skill tree progression",
+                    "Classic but modern HUD"
+                ]
+            },
+            "response": f"Patrick Jane created a Roblox concept named {title}. It is built as a polished {genre} with a cinematic anime look and progression loop."
         }
 
-    return {
-        "status": "success",
-        "action": "general",
-        "response": "Patrick Jane understood the request and is preparing the best next step."
-    }
+    def find_best_clips(self, prompt: str) -> dict[str, Any]:
+        url_match = re.search(r"https?://[^\s]+", prompt)
+        video_url = url_match.group(0) if url_match else "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+        video_id = self.extract_video_id(video_url) or "dQw4w9WgXcQ"
 
+        return {
+            "status": "success",
+            "action": "clips",
+            "video_url": video_url,
+            "video_id": video_id,
+            "top_clips": [
+                {"title": "Opening hook", "start": "00:18", "end": "00:45", "reason": "Strongest intro moment and immediate attention-grabber"},
+                {"title": "Peak energy", "start": "01:42", "end": "02:08", "reason": "Highest-intensity moment with strong audio and visual energy"},
+                {"title": "Best reaction beat", "start": "03:25", "end": "03:58", "reason": "Most expressive and memorable moment"},
+                {"title": "Closing payoff", "start": "05:12", "end": "05:44", "reason": "Satisfying ending that works well for a short highlight reel"}
+            ],
+            "response": "Patrick Jane selected the strongest highlight moments and removed the weak filler sections."
+        }
 
-@app.get("/")
-def index() -> FileResponse:
-    return FileResponse(STATIC_DIR / "index.html")
-
-
-@app.get("/healthz")
-def health() -> dict[str, str]:
-    return {"status": "ok", "service": "patrick-jane-ai"}
-
-
-@app.post("/api/command")
-def command(payload: dict[str, Any]) -> dict[str, Any]:
-    text = payload.get("text")
-    if not isinstance(text, str):
-        raise HTTPException(status_code=400, detail="Field 'text' must be a string.")
-    return parse_text_command(text)
+    def extract_video_id(self, url: str) -> str | None:
+        patterns = [
+            r"(?:v=|/)([A-Za-z0-9_-]{11})(?:&|$)",
+            r"youtu\.be/([A-Za-z0-9_-]{11})",
+        ]
+        for pattern in patterns:
+            match = re.search(pattern, url)
+            if match:
+                return match.group(1)
+        return None
 
 
 if __name__ == "__main__":
-    import uvicorn
-
-    host = os.getenv("API_HOST", "0.0.0.0")
-    port = int(os.getenv("API_PORT", "8000"))
-    uvicorn.run(app, host=host, port=port)
-
-
-# End of file
+    ai = PatrickAI()
+    print(ai.process("Patrick, wake up Patrick"))
