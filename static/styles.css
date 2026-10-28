@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Patrick Jane</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand-block">
+          <div class="brand-mark">P</div>
+          <div>
+            <div class="brand-title">Patrick Jane</div>
+            <div class="brand-subtitle">AI Command Console</div>
+          </div>
+        </div>
+        <div class="status-badge" id="statusBadge">Online</div>
+      </header>
+
+      <main class="dashboard">
+        <aside class="left-panel panel">
+          <h2>Quick Actions</h2>
+          <div class="action-list">
+            <button data-command="Patrick, open Spotify">Open Spotify</button>
+            <button data-command="Patrick, play music">Play Music</button>
+            <button data-command="Patrick, wake up Patrick">Wake Patrick</button>
+            <button data-command="Patrick, create a Roblox anime fighting game">Create Roblox Game</button>
+            <button data-command="Patrick, analyze this YouTube video: https://www.youtube.com/watch?v=dQw4w9WgXcQ">Analyze Clip</button>
+          </div>
+        </aside>
+
+        <section class="center-panel panel">
+          <div class="console-header">
+            <span>Command Input</span>
+            <span class="blink">● Listening</span>
+          </div>
+
+          <div class="command-form">
+            <input id="commandInput" type="text" value="Patrick, open Spotify" />
+            <button id="runCommandBtn">Execute</button>
+          </div>
+
+          <div class="response-box" id="responseBox">
+            <div class="response-header">Patrick Jane response</div>
+            <pre id="responseOutput">System initialized. Patrick Jane is online and ready.</pre>
+          </div>
+        </section>
+
+        <aside class="right-panel panel">
+          <h2>System Feed</h2>
+          <ul id="activityFeed">
+            <li>Boot sequence complete.</li>
+            <li>Classic UI loaded.</li>
+            <li>Music and game modules armed.</li>
+            <li>Clip analysis ready.</li>
+          </ul>
+        </aside>
+      </main>
+    </div>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
