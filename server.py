@@ -5,32 +5,42 @@ const statusBadge = document.getElementById('statusBadge');
 const activityFeed = document.getElementById('activityFeed');
 
 async function runCommand(commandText) {
-  const payload = { text: commandText };
+  try {
+    const payload = { text: commandText };
 
-  const result = await fetch('/api/command', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(payload),
-  });
+    const result = await fetch('/api/command', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
 
-  const data = await result.json();
-  responseOutput.textContent = JSON.stringify(data, null, 2);
+    const data = await result.json();
+    responseOutput.textContent = JSON.stringify(data, null, 2);
 
-  const item = document.createElement('li');
-  item.textContent = `${new Date().toLocaleTimeString()} :: ${commandText}`;
-  activityFeed.prepend(item);
+    const item = document.createElement('li');
+    item.textContent = `${new Date().toLocaleTimeString()} :: ${commandText}`;
+    activityFeed.prepend(item);
 
-  if (data.status === 'awake') {
-    statusBadge.textContent = 'Awake';
-    statusBadge.style.color = '#59d18a';
-  } else if (data.action === 'spotify') {
-    statusBadge.textContent = 'Music';
-    statusBadge.style.color = '#d8b15f';
-  } else if (data.action === 'roblox') {
-    statusBadge.textContent = 'Build';
-    statusBadge.style.color = '#8ed2ff';
+    if (data.status === 'awake') {
+      statusBadge.textContent = 'Awake';
+      statusBadge.style.color = '#59d18a';
+    } else if (data.action === 'spotify') {
+      statusBadge.textContent = 'Music';
+      statusBadge.style.color = '#d8b15f';
+    } else if (data.action === 'roblox') {
+      statusBadge.textContent = 'Build';
+      statusBadge.style.color = '#8ed2ff';
+    } else if (data.action === 'clips') {
+      statusBadge.textContent = 'Clips';
+      statusBadge.style.color = '#ffb36b';
+    } else {
+      statusBadge.textContent = 'Online';
+      statusBadge.style.color = '#59d18a';
+    }
+  } catch (error) {
+    responseOutput.textContent = 'Error: could not connect to the Patrick Jane API.';
   }
 }
 
