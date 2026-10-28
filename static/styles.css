@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Patrick Jane</title>
+    <title>Patrick Jane // Command Console</title>
     <link rel="stylesheet" href="/static/styles.css" />
   </head>
   <body>
@@ -13,28 +13,34 @@
           <div class="brand-mark">P</div>
           <div>
             <div class="brand-title">Patrick Jane</div>
-            <div class="brand-subtitle">AI Command Console</div>
+            <div class="brand-subtitle">Neural Command Console</div>
           </div>
         </div>
-        <div class="status-badge" id="statusBadge">Online</div>
+        <div class="status-panel">
+          <span class="dot"></span>
+          <span id="statusBadge">Online</span>
+        </div>
       </header>
 
       <main class="dashboard">
         <aside class="left-panel panel">
-          <h2>Quick Actions</h2>
+          <h2>Mission Deck</h2>
           <div class="action-list">
             <button data-command="Patrick, open Spotify">Open Spotify</button>
             <button data-command="Patrick, play music">Play Music</button>
             <button data-command="Patrick, wake up Patrick">Wake Patrick</button>
-            <button data-command="Patrick, create a Roblox anime fighting game">Create Roblox Game</button>
-            <button data-command="Patrick, analyze this YouTube video: https://www.youtube.com/watch?v=dQw4w9WgXcQ">Analyze Clip</button>
+            <button data-command="Patrick, create a futuristic anime Roblox game">Create Roblox Game</button>
+            <button data-command="Patrick, analyze this YouTube video: https://www.youtube.com/watch?v=dQw4w9WgXcQ">Find Best Clips</button>
+            <button data-command="Patrick, open VS Code">Open VS Code</button>
+            <button data-command="Patrick, open Discord">Open Discord</button>
+            <button data-command="Patrick, system status">System Status</button>
           </div>
         </aside>
 
         <section class="center-panel panel">
           <div class="console-header">
-            <span>Command Input</span>
-            <span class="blink">● Listening</span>
+            <span>Command Signal</span>
+            <span class="blink">● Active</span>
           </div>
 
           <div class="command-form">
@@ -42,9 +48,28 @@
             <button id="runCommandBtn">Execute</button>
           </div>
 
+          <div class="module-grid">
+            <div class="module-card">
+              <span class="module-label">App Control</span>
+              <strong>Launch tools</strong>
+            </div>
+            <div class="module-card">
+              <span class="module-label">Music</span>
+              <strong>Spotify / playback</strong>
+            </div>
+            <div class="module-card">
+              <span class="module-label">Roblox</span>
+              <strong>Game concept engine</strong>
+            </div>
+            <div class="module-card">
+              <span class="module-label">Clipping</span>
+              <strong>Best moments finder</strong>
+            </div>
+          </div>
+
           <div class="response-box" id="responseBox">
-            <div class="response-header">Patrick Jane response</div>
-            <pre id="responseOutput">System initialized. Patrick Jane is online and ready.</pre>
+            <div class="response-header">Patrick Jane Output</div>
+            <pre id="responseOutput">System initialized. Patrick Jane is online and ready to execute.</pre>
           </div>
         </section>
 
@@ -52,9 +77,10 @@
           <h2>System Feed</h2>
           <ul id="activityFeed">
             <li>Boot sequence complete.</li>
-            <li>Classic UI loaded.</li>
-            <li>Music and game modules armed.</li>
-            <li>Clip analysis ready.</li>
+            <li>Neural interfaces synced.</li>
+            <li>Spotify / app modules armed.</li>
+            <li>Roblox design engine active.</li>
+            <li>Clip intelligence online.</li>
           </ul>
         </aside>
       </main>

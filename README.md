@@ -1,48 +1,75 @@
-# Patrick Jane AI
+const input = document.getElementById('commandInput');
+const runBtn = document.getElementById('runCommandBtn');
+const responseOutput = document.getElementById('responseOutput');
+const statusBadge = document.getElementById('statusBadge');
+const activityFeed = document.getElementById('activityFeed');
 
-Patrick Jane is a classic-style AI desktop assistant prototype built with Python and FastAPI. It is designed for:
+async function runCommand(commandText) {
+  try {
+    const payload = { text: commandText };
+    const response = await fetch('/api/command', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
 
-- app launching
-- Spotify/music control
-- Roblox game generation
-- anime-inspired game design
-- YouTube clip highlight extraction
-- wake/sleep assistant behavior
-- retro command-console UI
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
 
-## Features implemented
+    const data = await response.json();
+    responseOutput.textContent = JSON.stringify(data, null, 2);
 
-- responsive classic interface
-- command endpoint for natural-language actions
-- OS app launcher abstraction
-- Spotify open/play flow
-- Roblox concept generator and starter plan
-- YouTube highlight planner with timestamps
-- wake-up assistant flow
+    const item = document.createElement('li');
+    item.textContent = `${new Date().toLocaleTimeString()} :: ${commandText}`;
+    activityFeed.prepend(item);
 
-## Run locally
+    if (data.status === 'awake') {
+      statusBadge.textContent = 'Awake';
+      statusBadge.style.color = '#7af0b2';
+    } else if (data.action === 'spotify') {
+      statusBadge.textContent = 'Music';
+      statusBadge.style.color = '#f3c66d';
+    } else if (data.action === 'roblox') {
+      statusBadge.textContent = 'Build';
+      statusBadge.style.color = '#6ee7ff';
+    } else if (data.action === 'clips') {
+      statusBadge.textContent = 'Clips';
+      statusBadge.style.color = '#9d7bff';
+    } else if (data.status === 'sleep') {
+      statusBadge.textContent = 'Standby';
+      statusBadge.style.color = '#ff7d7d';
+    } else {
+      statusBadge.textContent = 'Online';
+      statusBadge.style.color = '#7af0b2';
+    }
+  } catch (error) {
+    responseOutput.textContent = 'Error: could not reach Patrick Jane backend. Check that the API is running on localhost:8000.';
+  }
+}
 
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-python server.py
-```
+runBtn.addEventListener('click', () => {
+  const text = input.value.trim();
+  if (text) {
+    runCommand(text);
+  }
+});
 
-Then open:
+input.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter') {
+    const text = input.value.trim();
+    if (text) {
+      runCommand(text);
+    }
+  }
+});
 
-```text
-http://localhost:8000
-```
-
-## Example prompts
-
-- Patrick, open Discord
-- Patrick, play music
-- Patrick, wake up Patrick
-- Patrick, create a Roblox anime fighting game
-- Patrick, analyze this YouTube video: https://www.youtube.com/watch?v=dQw4w9WgXcQ
-
-## Notes
-
-This is a prototype foundation for a broader AI assistant. It includes logic for real app launching, real local Spotify launch commands, and structured workflows for Roblox and video highlight generation so it can be expanded into a production desktop assistant later.
+document.querySelectorAll('[data-command]').forEach((button) => {
+  button.addEventListener('click', () => {
+    const cmd = button.getAttribute('data-command');
+    input.value = cmd;
+    runCommand(cmd);
+  });
+});
